@@ -61,6 +61,12 @@ Resources:
           "-",
           [!Ref AppName, !Ref Environment, !Ref OriginalSuffix, "bucket"],
         ]
+      AccessControl: Private
+      LifecycleConfiguration:
+        Rules:
+          - Id: DeleteAfter15Days
+            Status: "Enabled"
+            ExpirationInDays: 15
       NotificationConfiguration:
         QueueConfigurations:
           - Event: s3:ObjectCreated:*
