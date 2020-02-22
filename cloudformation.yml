@@ -13,10 +13,10 @@ Metadata:
           default: Constants
         Parameters:
           - AppName
-          - OriginalSuffix # For raw resources
-          - ConversionSuffix # For resources involved in converting raw resources
-          - ProcessingSuffix # For resources involved in processing converted resources
-          - NotificationSuffix # For resource involved in notification of processed resources
+          - OriginalSuffix
+          - ConversionSuffix
+          - ProcessingSuffix
+          - ProcessedSuffix
 
 Parameters:
   AppName:
@@ -36,10 +36,10 @@ Parameters:
     Type: String
     Default: processing
     Description: Suffix for resources involved in processing converted resources
-  NotificationSuffix:
+  ProcessedSuffix:
     Type: String
-    Default: notification
-    Description: Suffix for resources involved in notification of processed resources
+    Default: proccessed
+    Description: Suffix for resources that have been processed successfully
   Environment:
     Type: String
     AllowedValues:
@@ -92,7 +92,10 @@ Resources:
                 "",
                 [
                   "arn:aws:sqs:::",
-                  !Join ["-", [!Ref AppName, !Ref Environment]],
+                  !Join [
+                    "-",
+                    [!Ref AppName, !Ref Environment, !Ref OriginalSuffix],
+                  ],
                   "*",
                 ],
               ]
@@ -104,7 +107,15 @@ Resources:
                     "",
                     [
                       "arn:aws:s3:*:*:",
-                      !Join ["-", [!Ref AppName, !Ref Environment]],
+                      !Join [
+                        "-",
+                        [
+                          !Ref AppName,
+                          !Ref Environment,
+                          !Ref OriginalSuffix,
+                          "bucket",
+                        ],
+                      ],
                     ],
                   ]
       Queues:
@@ -146,3 +157,285 @@ Resources:
         ]
       ReceiveMessageWaitTimeSeconds: 0
       VisibilityTimeout: 500
+
+  ConversionSourceBucket:
+    Type: AWS::S3::Bucket
+    DependsOn:
+      - ConversionSourceQueue
+      - ConversionSourceDeadLetterQueue
+      - ConversionSourceQueuePolicy
+    Properties:
+      BucketName:
+        !Join [
+          "-",
+          [!Ref AppName, !Ref Environment, !Ref ConversionSuffix, "bucket"],
+        ]
+      AccessControl: Private
+      LifecycleConfiguration:
+        Rules:
+          - Id: DeleteAfter15Days
+            Status: "Enabled"
+            ExpirationInDays: 15
+      NotificationConfiguration:
+        QueueConfigurations:
+          - Event: s3:ObjectCreated:*
+            Queue: !GetAtt ConversionSourceQueue.Arn
+  ConversionSourceQueuePolicy:
+    Type: AWS::SQS::QueuePolicy
+    DependsOn:
+      - ConversionSourceQueue
+      - ConversionSourceDeadLetterQueue
+    Properties:
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS: "*"
+            Action:
+              - SQS:SendMessage
+            # Target a wildcard resource name based on the same format as QueueName
+            Resource:
+              !Join [
+                "",
+                [
+                  "arn:aws:sqs:::",
+                  !Join [
+                    "-",
+                    [!Ref AppName, !Ref Environment, !Ref ConversionSuffix],
+                  ],
+                  "*",
+                ],
+              ]
+            Condition:
+              ArnLike:
+                # Static BucketName used to avoid circular dependency with S3 bucket
+                aws:SourceArn:
+                  !Join [
+                    "",
+                    [
+                      "arn:aws:s3:*:*:",
+                      !Join [
+                        "-",
+                        [
+                          !Ref AppName,
+                          !Ref Environment,
+                          !Ref ConversionSuffix,
+                          "bucket",
+                        ],
+                      ],
+                    ],
+                  ]
+      Queues:
+        - !Ref ConversionSourceQueue
+        - !Ref ConversionSourceDeadLetterQueue
+  ConversionSourceQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      DelaySeconds: 0
+      MaximumMessageSize: 262144
+      MessageRetentionPeriod: 864000
+      QueueName:
+        !Join [
+          "-",
+          [!Ref AppName, !Ref Environment, !Ref ConversionSuffix, "queue"],
+        ]
+      ReceiveMessageWaitTimeSeconds: 0
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt ConversionSourceDeadLetterQueue.Arn
+        maxReceiveCount: 3
+      VisibilityTimeout: 18000 # 5 hours
+  ConversionSourceDeadLetterQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      DelaySeconds: 0
+      MaximumMessageSize: 262144
+      MessageRetentionPeriod: 1209600 # 14 days. Maximum allowed period
+      QueueName:
+        !Join [
+          "-",
+          [
+            !Ref AppName,
+            !Ref Environment,
+            !Ref ConversionSuffix,
+            "deadletter-queue",
+          ],
+        ]
+      ReceiveMessageWaitTimeSeconds: 0
+      VisibilityTimeout: 500
+  ProcessingSourceBucket:
+    Type: AWS::S3::Bucket
+    DependsOn:
+      - ProcessingSourceQueue
+      - ProcessingSourceDeadLetterQueue
+      - ProcessingSourceQueuePolicy
+    Properties:
+      BucketName:
+        !Join [
+          "-",
+          [!Ref AppName, !Ref Environment, !Ref ProcessingSuffix, "bucket"],
+        ]
+      AccessControl: Private
+      LifecycleConfiguration:
+        Rules:
+          - Id: DeleteAfter15Days
+            Status: "Enabled"
+            ExpirationInDays: 15
+      NotificationConfiguration:
+        QueueConfigurations:
+          - Event: s3:ObjectCreated:*
+            Queue: !GetAtt ProcessingSourceQueue.Arn
+  ProcessingSourceQueuePolicy:
+    Type: AWS::SQS::QueuePolicy
+    DependsOn:
+      - ProcessingSourceQueue
+      - ProcessingSourceDeadLetterQueue
+    Properties:
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS: "*"
+            Action:
+              - SQS:SendMessage
+            # Target a wildcard resource name based on the same format as QueueName
+            Resource:
+              !Join [
+                "",
+                [
+                  "arn:aws:sqs:::",
+                  !Join [
+                    "-",
+                    [!Ref AppName, !Ref Environment, !Ref ProcessingSuffix],
+                  ],
+                  "*",
+                ],
+              ]
+            Condition:
+              ArnLike:
+                # Static BucketName used to avoid circular dependency with S3 bucket
+                aws:SourceArn:
+                  !Join [
+                    "",
+                    [
+                      "arn:aws:s3:*:*:",
+                      !Join [
+                        "-",
+                        [
+                          !Ref AppName,
+                          !Ref Environment,
+                          !Ref ProcessingSuffix,
+                          "bucket",
+                        ],
+                      ],
+                    ],
+                  ]
+      Queues:
+        - !Ref ProcessingSourceQueue
+        - !Ref ProcessingSourceDeadLetterQueue
+  ProcessingSourceQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      DelaySeconds: 0
+      MaximumMessageSize: 262144
+      MessageRetentionPeriod: 864000
+      QueueName:
+        !Join [
+          "-",
+          [!Ref AppName, !Ref Environment, !Ref ProcessingSuffix, "queue"],
+        ]
+      ReceiveMessageWaitTimeSeconds: 0
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt ProcessingSourceDeadLetterQueue.Arn
+        maxReceiveCount: 3
+      VisibilityTimeout: 18000 # 5 hours
+  ProcessingSourceDeadLetterQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      DelaySeconds: 0
+      MaximumMessageSize: 262144
+      MessageRetentionPeriod: 1209600 # 14 days. Maximum allowed period
+      QueueName:
+        !Join [
+          "-",
+          [
+            !Ref AppName,
+            !Ref Environment,
+            !Ref ProcessingSuffix,
+            "deadletter-queue",
+          ],
+        ]
+      ReceiveMessageWaitTimeSeconds: 0
+      VisibilityTimeout: 500
+
+  ProccessedSourceBucket:
+    Type: AWS::S3::Bucket
+    # DependsOn:
+    #   - ProcessedSourceSnsTopic
+    #   - ProcessedSourceSnsTopicPolicy
+    Properties:
+      BucketName:
+        !Join [
+          "-",
+          [!Ref AppName, !Ref Environment, !Ref ProcessedSuffix, "bucket"],
+        ]
+      AccessControl: Public
+      # NotificationConfiguration:
+      #   TopicConfigurations:
+      #     - Event: s3:ObjectCreated:*
+      #       Topic: ProcessedSourceSnsTopic
+      LifecycleConfiguration:
+        Rules:
+          - Id: DeleteAfter15Days
+            Status: "Enabled"
+            ExpirationInDays: 15
+  # ProcessedSourceSnsTopicPolicy:
+  #   Type: AWS::SNS::TopicPolicy
+  #   DependsOn:
+  #     - ProcessedSourceSnsTopic
+  #   Properties:
+  #     PolicyDocument:
+  #       Version: 2012-10-17
+  #       Statement:
+  #         - Effect: Allow
+  #           Principal:
+  #             AWS: "*"
+  #           Action:
+  #             - SNS:Publish
+  #           Resource:
+  #             !Join [
+  #               "",
+  #               [
+  #                 "arn:aws:sns:::",
+  #                 !Join [
+  #                   "-",
+  #                   [!Ref AppName, !Ref Environment, !Ref ProcessedSuffix],
+  #                 ],
+  #                 "*",
+  #               ],
+  #             ]
+  #           Condition:
+  #             ArnLike:
+  #               # Static BucketName used to avoid circular dependency with S3 bucket
+  #               aws:SourceArn:
+  #                 !Join [
+  #                   "",
+  #                   [
+  #                     "arn:aws:s3:*:*:",
+  #                     [
+  #                       !Ref AppName,
+  #                       !Ref Environment,
+  #                       !Ref ProcessedSuffix,
+  #                       "bucket",
+  #                     ],
+  #                   ],
+  #                 ]
+  # ProcessedSourceSnsTopic:
+  #   Type: AWS::SNS::Topic
+  #   Properties:
+  #     TopicName:
+  #       !Join [
+  #         "-",
+  #         [!Ref AppName, !Ref Environment, !Ref ProcessedSuffix, "topic"],
+  #       ]
