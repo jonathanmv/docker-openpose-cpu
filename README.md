@@ -9,30 +9,36 @@ I couldn't find a working CPU-only variant for Docker, so I created this to enab
 I've done absolutely nothing to reduce the size of the image. As such I'm not pushing it to Dockerhub.
 
 ### What it does
-* Downloads all 3 body models: BODY_25, COCO, and MPI
-* Downloads hand and foot models
-* Builds Caffe from source
-* Disables MKL
-  * When trying to compile with MKL I ran into issues. It's probably an easy fix.
+
+- Downloads all 3 body models: BODY_25, COCO, and MPI
+- Downloads hand and foot models
+- Builds Caffe from source
+- Disables MKL
+  - When trying to compile with MKL I ran into issues. It's probably an easy fix.
 
 ## Building
 
 Pull down the Dockerfile. Then run:
 
 ```sh
-$ docker build . -f Dockerfile.cpuonly -t "seancook/openpose-cpu"
+$ docker build . -t "jonathanmv/openpose-cpu"
 ```
-
-It takes ~8 minutes to build on my machine (2017 iMac 4.2GHz with 64MB of RAM). YMMV.
 
 ## Usage
 
+Create images and videos folders by running `mkdir -p data/images data/videos`. Place your files accordingly.
+
 ```sh
 # basic usage, runs --help
-$ docker run seancook/openpose-cpu:latest
+$ docker run jonathanmv/openpose-cpu:latest
 ```
 
 ```sh
-# if you have image file(s) in the current directory and you would like to process them
-$ docker run -v`pwd`:/data -it seancook/openpose-cpu -display 0 -image_dir /data -write_images /data
+# process image file(s) in ./data/images directory
+$ docker run -v`pwd`/data:/data -it jonathanmv/openpose-cpu -display 0 -image_dir /data/images -write_images /data/images
+```
+
+```sh
+# process a single video in avi format
+$ docker run -v`pwd`/data:/data -it jonathanmv/openpose-cpu -display 0 -video /data/videos/video.avi -write_video /data/videos/video_rendered.avi
 ```
