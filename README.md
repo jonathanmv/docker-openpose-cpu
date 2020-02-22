@@ -16,12 +16,20 @@ I've done absolutely nothing to reduce the size of the image. As such I'm not pu
 - Disables MKL
   - When trying to compile with MKL I ran into issues. It's probably an easy fix.
 
-## Building images
+## Docker images
 
 ### Openpose cpu
 
 ```sh
 $ docker build . -f ./docker-images/openpose-cpu/Dockerfile -t "jonathanmv/openpose-cpu"
+```
+
+### FFMPEG (Optional)
+
+As I understand, openpose can process `.avi` videos only, so if you need to process a video which is not in the `.avi` format pulling this docker helps you
+
+```sh
+$ docker pull jrottenberg/ffmpeg
 ```
 
 ## Usage
@@ -43,6 +51,34 @@ $ docker run -v`pwd`/data:/data -it jonathanmv/openpose-cpu -display 0 -image_di
 $ docker run -v`pwd`/data:/data -it jonathanmv/openpose-cpu -display 0 -video /data/videos/video.avi -write_video /data/videos/video_rendered.avi
 ```
 
+```sh
+# convert video from .mp4 to .avi
+$ docker run -v`pwd`/data:/data -it jrottenberg/ffmpeg -i /data/videos/video.mp4 /data/videos/video.avi
+```
+
 ## Automatic execution on video upload
 
-At the moment, openpose expects a `.avi` video so we need to make sure to convert the video before processing it with openpose.
+The way I would like it to work is that I upload a video to S3 and some time later I get an email with a link to download the processed video.
+
+Let's break it down into conversion, processing and notification.
+
+### Conversion
+
+1. A new file is uploaded to the `s3://original-source` bucket by the user
+2. A sqs message is sent by s3 to the `sqs://new-original-source` queue
+3. A lambda is dispatched by sqs
+4. The lambda starts a new `jrottenberg/ffmeg` based ecs task `ecs-task://process-new-original-source` giving it the sqs message
+5. The ecs task reads the video from `s3://original-source`, converts it to `.avi` and uploads the converted file to the `s3://converted-source` bucket.
+
+### Processing
+
+1. A new file is uploaded to the `s3://converted-source` bucket from the previous step
+2. A sqs message is sent by s3 to the `sqs://new-converted-source` queue
+3. A lambda is dispatched by sqs
+4. The lambda starts a new `jonathanmv/openpose-cpu` based ecs task `ecs-task://process-new-converted-source` giving it the sqs message
+5. The ecs task reads the video from `s3://converted-source`, processes it and uploads the converted file to the `s3://processed-source` bucket.
+
+### Notification
+
+1. A new file is uploaded to the `s3://processed-source` bucket from the previous step
+2. A sns notification is sent to the `sns://new-processed-source` topic. You must be subscribed it in order to receive the email.
