@@ -1,6 +1,6 @@
 FROM ubuntu:18.04
 
-LABEL maintainer="sean@seancook.dev"
+LABEL maintainer="me@jonathanmv.com"
 LABEL description="CPU-only version of OpenPose. Not slimmed for production."
 LABEL version="1.0"
 
@@ -20,21 +20,21 @@ RUN git checkout caa794cf81bed53b9e114299b715a6d972097b5b
 WORKDIR scripts/ubuntu
 
 RUN sed -i 's/\<sudo -H\>//g' install_deps.sh; \
-   sed -i 's/\<sudo\>//g' install_deps.sh; \
-   sed -i 's/\<easy_install pip\>//g' install_deps.sh; \
-   sync; sleep 1; bash install_deps.sh
+    sed -i 's/\<sudo\>//g' install_deps.sh; \
+    sed -i 's/\<easy_install pip\>//g' install_deps.sh; \
+    sync; sleep 1; bash install_deps.sh
 
 WORKDIR /openpose/build
 
 RUN cmake -DGPU_MODE:String=CPU_ONLY \
-          -DDOWNLOAD_BODY_MPI_MODEL:Bool=ON \
-          -DDOWNLOAD_BODY_COCO_MODEL:Bool=ON \
-          -DDOWNLOAD_FACE_MODEL:Bool=ON \
-          -DDOWNLOAD_HAND_MODEL:Bool=ON \
-          -DUSE_MKL:Bool=OFF \
-          ..
+    -DDOWNLOAD_BODY_MPI_MODEL:Bool=ON \
+    -DDOWNLOAD_BODY_COCO_MODEL:Bool=ON \
+    -DDOWNLOAD_FACE_MODEL:Bool=ON \
+    -DDOWNLOAD_HAND_MODEL:Bool=ON \
+    -DUSE_MKL:Bool=OFF \
+    ..
 
-RUN make -j # yolo
+RUN make -j 4 # yolo
 
 RUN apt-get remove wget unzip cmake git build-essential -y && apt-get autoremove -y
 
