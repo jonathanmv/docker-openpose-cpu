@@ -1,4 +1,5 @@
 # Taken from https://gist.github.com/davidfrey/f0e71cfd17883a5ab89fdcaa8615fb2c
+# Another reference
 
 AWSTemplateFormatVersion: "2010-09-09"
 Description: Openpose video processor
@@ -49,29 +50,6 @@ Parameters:
     Default: dev
 
 Resources:
-  OriginalSourceBucket:
-    Type: AWS::S3::Bucket
-    DependsOn:
-      - OriginalSourceQueue
-      - OriginalSourceDeadLetterQueue
-      - OriginalSourceQueuePolicy
-    Properties:
-      BucketName:
-        !Join [
-          "-",
-          [!Ref AppName, !Ref Environment, !Ref OriginalSuffix, "bucket"],
-        ]
-      AccessControl: Private
-      LifecycleConfiguration:
-        Rules:
-          - Id: DeleteAfter15Days
-            Status: "Enabled"
-            ExpirationInDays: 15
-      NotificationConfiguration:
-        QueueConfigurations:
-          - Event: s3:ObjectCreated:*
-            Queue: !GetAtt OriginalSourceQueue.Arn
-
   OriginalSourceQueuePolicy:
     Type: AWS::SQS::QueuePolicy
     DependsOn:
@@ -106,7 +84,7 @@ Resources:
                   !Join [
                     "",
                     [
-                      "arn:aws:s3:*:*:",
+                      "arn:aws:s3:::",
                       !Join [
                         "-",
                         [
@@ -124,6 +102,8 @@ Resources:
 
   OriginalSourceQueue:
     Type: AWS::SQS::Queue
+    DependsOn:
+      - OriginalSourceDeadLetterQueue
     Properties:
       DelaySeconds: 0
       MaximumMessageSize: 262144
@@ -157,3 +137,20 @@ Resources:
         ]
       ReceiveMessageWaitTimeSeconds: 0
       VisibilityTimeout: 500
+
+  OriginalSourceBucket:
+    Type: AWS::S3::Bucket
+    DependsOn:
+      - OriginalSourceQueue
+      - OriginalSourceDeadLetterQueue
+      - OriginalSourceQueuePolicy
+    Properties:
+      BucketName:
+        !Join [
+          "-",
+          [!Ref AppName, !Ref Environment, !Ref OriginalSuffix, "bucket"],
+        ]
+      # NotificationConfiguration:
+      #   QueueConfigurations:
+      #     - Event: "s3:ObjectCreated:Put"
+      #       Queue: !GetAtt OriginalSourceQueue.Arn

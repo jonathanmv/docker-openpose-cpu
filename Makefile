@@ -13,7 +13,7 @@ validate-template: cloudformation.yml
 	aws cloudformation validate-template \
 	--template-body $(CLOUDFORMATION_TEMPLATE)
 
-create-stack: validate-template
+delete-stack: validate-template
 	aws cloudformation delete-stack \
 	--stack-name $(STACK)
 
@@ -26,3 +26,7 @@ deploy-stack: validate-template
 	aws cloudformation deploy \
 	--stack-name $(STACK) \
 	--template-file cloudformation.yml
+
+describe-stack-events:
+	aws cloudformation describe-stack-events \
+	--stack-name $(STACK) \
