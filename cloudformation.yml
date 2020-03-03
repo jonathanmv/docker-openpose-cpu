@@ -154,3 +154,33 @@ Resources:
       #   QueueConfigurations:
       #     - Event: "s3:ObjectCreated:Put"
       #       Queue: !GetAtt OriginalSourceQueue.Arn
+
+  OriginalECSRepository:
+    Type: AWS::ECR::Repository
+    Properties:
+      RepositoryName:
+        !Join [
+          "-",
+          [
+            !Ref AppName,
+            !Ref Environment,
+            !Ref OriginalSuffix,
+            "ecs-repository",
+          ],
+        ]
+      RepositoryPolicyText:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: AllowPushPull
+            Effect: Allow
+            Principal:
+              AWS:
+                - !Join [":", ["arn:aws:iam", !Ref "AWS::AccountId", "user/*"]]
+            Action:
+              - "ecr:GetDownloadUrlForLayer"
+              - "ecr:BatchGetImage"
+              - "ecr:BatchCheckLayerAvailability"
+              - "ecr:PutImage"
+              - "ecr:InitiateLayerUpload"
+              - "ecr:UploadLayerPart"
+              - "ecr:CompleteLayerUpload"
