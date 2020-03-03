@@ -82,3 +82,22 @@ Let's break it down into conversion, processing and notification.
 
 1. A new file is uploaded to the `s3://processed-source` bucket from the previous step
 2. A sns notification is sent to the `sns://new-processed-source` topic. You must be subscribed it in order to receive the email.
+
+# Cloudformation
+
+There is a [cloudformation.yml](./cloudformation.yml) file that will create resources for you.
+
+To create the stack you need to make sure that you have a credentials and cofig files located in `~/.aws/openpose-credentials` and `~/.aws/openpose-config` respectively (see [Makefile](./Makefile)). These files are created by running `aws configure`.
+
+Once you have your credentials and cofig files in place you can create the stack by running `make create-stack`.
+Between other things, the stack will create a s3 bucket that you need to add notifications manually to send _Create Object_ events to the created SQS Queue (take a look at the commented `NotificationConfiguration` section).
+Another manual step you need to do is to build the openpose docker image and push it to the ECR Repository. To do so, you need to run the following commands:
+
+```
+make ecr-build
+make ecr-tag
+make ecr-print-login
+# execute the printed command
+make ecr-tag
+make ecr-push
+```
