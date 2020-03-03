@@ -1,6 +1,7 @@
-PWD = $(shell pwd)
-CLOUDFORMATION_TEMPLATE = file://$(shell pwd)/cloudformation.yml
-STACK = openpose-video-processor
+PWD=$(shell pwd)
+CLOUDFORMATION_TEMPLATE=file://$(shell pwd)/cloudformation.yml
+STACK=openpose-video-processor
+ECR_ENDPOINT=472551880915.dkr.ecr.eu-west-2.amazonaws.com
 
 #unset AWS vars to force authentication from provided file
 export AWS_ACCESS_KEY_ID=
@@ -30,3 +31,16 @@ deploy-stack: validate-template
 describe-stack-events:
 	aws cloudformation describe-stack-events \
 	--stack-name $(STACK) \
+
+### Read how to authenticate to the registry https://docs.aws.amazon.com/AmazonECR/latest/userguide/Registries.html#registry_auth
+ecr-print-login:
+	aws ecr get-login --no-include-email
+
+ecr-build:
+	docker build -t openpose-video-processor .
+
+ecr-tag:
+	docker tag openpose-video-processor:latest 472551880915.dkr.ecr.eu-west-2.amazonaws.com/openpose-video-processor:latest
+
+ecr-push:
+	docker push $(ECR_ENDPOINT)/openpose-video-processor:latest
