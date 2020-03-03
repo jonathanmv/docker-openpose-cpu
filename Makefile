@@ -40,7 +40,7 @@ ecr-build:
 	docker build -t openpose-video-processor .
 
 ecr-tag:
-	docker tag openpose-video-processor:latest 472551880915.dkr.ecr.eu-west-2.amazonaws.com/openpose-video-processor:latest
+	docker tag openpose-video-processor:latest $(ECR_ENDPOINT)/openpose-video-processor:latest
 
 ecr-push:
 	docker push $(ECR_ENDPOINT)/openpose-video-processor:latest
