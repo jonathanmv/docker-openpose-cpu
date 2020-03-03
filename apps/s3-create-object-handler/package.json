@@ -1,0 +1,25 @@
+{
+  "name": "s3-create-object-handler",
+  "version": "1.0.0",
+  "description": "Coordinates the execution of tasks when a new object is created on s3",
+  "main": "index.js",
+  "scripts": {
+    "clean": "rm -rf ./dist",
+    "build": "tsc --build --verbose",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jonathanmv/docker-openpose-cpu.git"
+  },
+  "keywords": [
+    "lambda",
+    "s3"
+  ],
+  "author": "Jonathan Morales Velez",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/jonathanmv/docker-openpose-cpu/issues"
+  },
+  "homepage": "https://github.com/jonathanmv/docker-openpose-cpu#readme"
+}
