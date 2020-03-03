@@ -1,0 +1,179 @@
+# Taken from https://gist.github.com/davidfrey/f0e71cfd17883a5ab89fdcaa8615fb2c
+# Another reference
+
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Openpose video processor
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          default: Stack Variables
+        Parameters:
+          - Environment
+      - Label:
+          default: Constants
+        Parameters:
+          - AppName
+          - OriginalSuffix
+          - ConversionSuffix
+          - ProcessingSuffix
+          - ProcessedSuffix
+
+Parameters:
+  AppName:
+    Type: String
+    Default: openpose-video-processor
+    AllowedValues:
+      - openpose-video-processor
+  OriginalSuffix:
+    Type: String
+    Default: original
+    Description: Suffix for raw resources
+  ConversionSuffix:
+    Type: String
+    Default: conversion
+    Description: Suffix for resources involved in converting raw resources
+  ProcessingSuffix:
+    Type: String
+    Default: processing
+    Description: Suffix for resources involved in processing converted resources
+  ProcessedSuffix:
+    Type: String
+    Default: proccessed
+    Description: Suffix for resources that have been processed successfully
+  Environment:
+    Type: String
+    AllowedValues:
+      - dev
+      - test
+      - prod
+    Default: dev
+
+Resources:
+  OriginalSourceQueuePolicy:
+    Type: AWS::SQS::QueuePolicy
+    DependsOn:
+      - OriginalSourceQueue
+      - OriginalSourceDeadLetterQueue
+    Properties:
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS: "*"
+            Action:
+              - SQS:SendMessage
+            # Target a wildcard resource name based on the same format as QueueName
+            Resource:
+              !Join [
+                "",
+                [
+                  "arn:aws:sqs:::",
+                  !Join [
+                    "-",
+                    [!Ref AppName, !Ref Environment, !Ref OriginalSuffix],
+                  ],
+                  "*",
+                ],
+              ]
+            Condition:
+              ArnLike:
+                # Static BucketName used to avoid circular dependency with S3 bucket
+                aws:SourceArn:
+                  !Join [
+                    "",
+                    [
+                      "arn:aws:s3:::",
+                      !Join [
+                        "-",
+                        [
+                          !Ref AppName,
+                          !Ref Environment,
+                          !Ref OriginalSuffix,
+                          "bucket",
+                        ],
+                      ],
+                    ],
+                  ]
+      Queues:
+        - !Ref OriginalSourceQueue
+        - !Ref OriginalSourceDeadLetterQueue
+
+  OriginalSourceQueue:
+    Type: AWS::SQS::Queue
+    DependsOn:
+      - OriginalSourceDeadLetterQueue
+    Properties:
+      DelaySeconds: 0
+      MaximumMessageSize: 262144
+      MessageRetentionPeriod: 864000
+      QueueName:
+        !Join [
+          "-",
+          [!Ref AppName, !Ref Environment, !Ref OriginalSuffix, "queue"],
+        ]
+      ReceiveMessageWaitTimeSeconds: 0
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt OriginalSourceDeadLetterQueue.Arn
+        maxReceiveCount: 3
+      VisibilityTimeout: 18000 # 5 hours
+
+  OriginalSourceDeadLetterQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      DelaySeconds: 0
+      MaximumMessageSize: 262144
+      MessageRetentionPeriod: 1209600 # 14 days. Maximum allowed period
+      QueueName:
+        !Join [
+          "-",
+          [
+            !Ref AppName,
+            !Ref Environment,
+            !Ref OriginalSuffix,
+            "deadletter-queue",
+          ],
+        ]
+      ReceiveMessageWaitTimeSeconds: 0
+      VisibilityTimeout: 500
+
+  OriginalSourceBucket:
+    Type: AWS::S3::Bucket
+    DependsOn:
+      - OriginalSourceQueue
+      - OriginalSourceDeadLetterQueue
+      - OriginalSourceQueuePolicy
+    Properties:
+      BucketName:
+        !Join [
+          "-",
+          [!Ref AppName, !Ref Environment, !Ref OriginalSuffix, "bucket"],
+        ]
+      # NotificationConfiguration:
+      #   QueueConfigurations:
+      #     - Event: "s3:ObjectCreated:Put"
+      #       Queue: !GetAtt OriginalSourceQueue.Arn
+
+  OriginalECSRepository:
+    Type: AWS::ECR::Repository
+    Properties:
+      RepositoryName:
+        !Join [
+          "-",
+          [
+            !Ref AppName,
+            !Ref Environment,
+            !Ref OriginalSuffix,
+            "ecr-repository",
+          ],
+        ]
+
+  OriginalECSCluster:
+    Type: AWS::ECS::Cluster
+    Properties:
+      ClusterName:
+        !Join [
+          "-",
+          [!Ref AppName, !Ref Environment, !Ref OriginalSuffix, "ecs-cluster"],
+        ]
