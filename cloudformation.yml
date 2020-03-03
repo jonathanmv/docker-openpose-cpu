@@ -165,22 +165,15 @@ Resources:
             !Ref AppName,
             !Ref Environment,
             !Ref OriginalSuffix,
-            "ecs-repository",
+            "ecr-repository",
           ],
         ]
-      RepositoryPolicyText:
-        Version: "2012-10-17"
-        Statement:
-          - Sid: AllowPushPull
-            Effect: Allow
-            Principal:
-              AWS:
-                - !Join [":", ["arn:aws:iam", !Ref "AWS::AccountId", "user/*"]]
-            Action:
-              - "ecr:GetDownloadUrlForLayer"
-              - "ecr:BatchGetImage"
-              - "ecr:BatchCheckLayerAvailability"
-              - "ecr:PutImage"
-              - "ecr:InitiateLayerUpload"
-              - "ecr:UploadLayerPart"
-              - "ecr:CompleteLayerUpload"
+
+  OriginalECSCluster:
+    Type: AWS::ECS::Cluster
+    Properties:
+      ClusterName:
+        !Join [
+          "-",
+          [!Ref AppName, !Ref Environment, !Ref OriginalSuffix, "ecs-cluster"],
+        ]
