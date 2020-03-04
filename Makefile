@@ -37,8 +37,8 @@ describe-stack-events:
 	--stack-name $(CLOUDFORMATION_STACK) \
 
 ### Read how to authenticate to the registry https://docs.aws.amazon.com/AmazonECR/latest/userguide/Registries.html#registry_auth
-ecr-print-login:
-	aws ecr get-login --no-include-email
+ecr-login:
+	aws ecr get-login --no-include-email | sh
 
 ecr-build:
 	docker build -t openpose-video-processor .
@@ -48,6 +48,3 @@ ecr-tag:
 
 ecr-push:
 	docker push $(ECR_ENDPOINT):latest
-
-ee:
-	echo $(ECR_ENDPOINT)
