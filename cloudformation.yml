@@ -137,10 +137,10 @@ Resources:
           "-",
           [!Ref AppName, !Ref Environment, !Ref OriginalSuffix, "bucket"],
         ]
-      # NotificationConfiguration:
-      #   QueueConfigurations:
-      #     - Event: "s3:ObjectCreated:Put"
-      #       Queue: !GetAtt OriginalSourceQueue.Arn
+      NotificationConfiguration:
+        QueueConfigurations:
+          - Event: "s3:ObjectCreated:*"
+            Queue: !GetAtt OriginalSourceQueue.Arn
 
   OriginalECSRepository:
     Type: AWS::ECR::Repository
