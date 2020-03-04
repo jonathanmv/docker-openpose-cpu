@@ -65,7 +65,7 @@ Resources:
               - sqs:SendMessage
             Resource: !GetAtt OriginalSourceQueue.Arn
             Condition:
-              ArnEquals:
+              ArnLike:
                 # Static BucketName used to avoid circular dependency with S3 bucket
                 aws:SourceArn:
                   !Join [
@@ -137,10 +137,10 @@ Resources:
           "-",
           [!Ref AppName, !Ref Environment, !Ref OriginalSuffix, "bucket"],
         ]
-      # NotificationConfiguration:
-      #   QueueConfigurations:
-      #     - Event: "s3:ObjectCreated:Put"
-      #       Queue: !GetAtt OriginalSourceQueue.Arn
+      NotificationConfiguration:
+        QueueConfigurations:
+          - Event: "s3:ObjectCreated:*"
+            Queue: !GetAtt OriginalSourceQueue.Arn
 
   OriginalECSRepository:
     Type: AWS::ECR::Repository
