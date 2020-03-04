@@ -1,7 +1,7 @@
 PWD=$(shell pwd)
-COMMON_NAME=openpose-video-processor
+APP_NAME=openpose-video-processor
 ENV=dev
-BASE_NAME=$(COMMON_NAME)-$(ENV)
+BASE_NAME=$(APP_NAME)-$(ENV)
 CLOUDFORMATION_STACK=$(BASE_NAME)-original-cloudformation-stack
 CLOUDFORMATION_TEMPLATE=file://$(PWD)/cloudformation.yml
 ECR_ENDPOINT=472551880915.dkr.ecr.eu-west-2.amazonaws.com/$(BASE_NAME)-original-ecr-repository
@@ -24,6 +24,7 @@ delete-stack: validate-template
 create-stack: validate-template
 	aws cloudformation create-stack \
 	--stack-name $(CLOUDFORMATION_STACK) \
+	--parameters ParameterKey=AppName,ParameterValue=$(APP_NAME) ParameterKey=Environment,ParameterValue=$(ENV) \
 	--template-body $(CLOUDFORMATION_TEMPLATE)
 
 deploy-stack: validate-template
