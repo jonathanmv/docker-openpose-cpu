@@ -60,38 +60,25 @@ Resources:
         Version: 2012-10-17
         Statement:
           - Effect: Allow
-            Principal:
-              AWS: "*"
+            Principal: "*"
             Action:
-              - SQS:SendMessage
-            # Target a wildcard resource name based on the same format as QueueName
-            Resource:
-              !Join [
-                "",
-                [
-                  "arn:aws:sqs:::",
-                  !Join [
-                    "-",
-                    [!Ref AppName, !Ref Environment, !Ref OriginalSuffix],
-                  ],
-                  "*",
-                ],
-              ]
+              - sqs:SendMessage
+            Resource: !GetAtt OriginalSourceQueue.Arn
             Condition:
-              ArnLike:
+              ArnEquals:
                 # Static BucketName used to avoid circular dependency with S3 bucket
                 aws:SourceArn:
                   !Join [
                     "",
                     [
-                      "arn:aws:s3:::",
+                      "arn:aws:s3:*:*:",
                       !Join [
                         "-",
                         [
                           !Ref AppName,
                           !Ref Environment,
                           !Ref OriginalSuffix,
-                          "bucket",
+                          "*",
                         ],
                       ],
                     ],
