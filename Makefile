@@ -48,3 +48,12 @@ ecr-tag:
 
 ecr-push:
 	docker push $(ECR_ENDPOINT):latest
+
+ecr-ffmpeg-build:
+	docker build -t ffmpeg -f ./docker-images/ffmpeg.Dockerfile ./docker-images
+
+ecr-ffmpeg-tag:
+	docker tag ffmpeg:latest $(ECR_ENDPOINT):latest
+
+ecr-ffmpeg-push:
+	docker push $(ECR_ENDPOINT):latest
