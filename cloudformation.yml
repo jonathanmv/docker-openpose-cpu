@@ -142,19 +142,17 @@ Resources:
           - Event: "s3:ObjectCreated:*"
             Queue: !GetAtt OriginalSourceQueue.Arn
 
-  OriginalECSRepository:
+  # ECR Repositories - One per docker image
+  OpenposeECSRepository:
     Type: AWS::ECR::Repository
     Properties:
       RepositoryName:
-        !Join [
-          "-",
-          [
-            !Ref AppName,
-            !Ref Environment,
-            !Ref OriginalSuffix,
-            "ecr-repository",
-          ],
-        ]
+        !Join ["-", [!Ref AppName, !Ref Environment, "openpose-ecr-repository"]]
+  FfmpegECSRepository:
+    Type: AWS::ECR::Repository
+    Properties:
+      RepositoryName:
+        !Join ["-", [!Ref AppName, !Ref Environment, "ffmpeg-ecr-repository"]]
 
   OriginalECSCluster:
     Type: AWS::ECS::Cluster
