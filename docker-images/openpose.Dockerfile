@@ -17,7 +17,7 @@ WORKDIR /openpose
 
 RUN git checkout caa794cf81bed53b9e114299b715a6d972097b5b
 
-WORKDIR /scripts/ubuntu
+WORKDIR /openpose/scripts/ubuntu
 
 RUN sed -i 's/\<sudo -H\>//g' install_deps.sh; \
     sed -i 's/\<sudo\>//g' install_deps.sh; \
@@ -40,6 +40,6 @@ RUN apt-get remove wget unzip cmake git build-essential -y && apt-get autoremove
 
 WORKDIR /openpose
 
-ENTRYPOINT ["./build/examples/openpose/openpose.bin"]
+ENTRYPOINT ["/openpose/build/examples/openpose/openpose.bin"]
 
 CMD ["--help"]
