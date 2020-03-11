@@ -38,8 +38,16 @@ RUN make -j 4 # yolo
 
 RUN apt-get remove wget unzip cmake git build-essential -y && apt-get autoremove -y
 
-WORKDIR /openpose
+# Install aws cli v2
+## From https://docs.aws.amazon.com/cli/latest/userguide/install-cliv2-linux.html
+RUN apt install curl -y
+RUN apt install unzip -y
+RUN curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+RUN unzip awscliv2.zip
+RUN ./aws/install
 
-ENTRYPOINT ["/openpose/build/examples/openpose/openpose.bin"]
+COPY ./download-process-upload.sh /scripts/download-process-upload.sh
 
-CMD ["--help"]
+WORKDIR /scripts
+
+CMD ["./download-process-upload.sh"]
