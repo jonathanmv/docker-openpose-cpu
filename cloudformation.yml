@@ -168,7 +168,7 @@ Resources:
     Type: AWS::IAM::Role
     Properties:
       RoleName:
-        !Join ["-", [!Ref AppName, !Ref Environment, "ecsTaskExecutionRole"]]
+        !Join ["-", [!Ref AppName, !Ref Environment, "ecs-task-execution-role"]]
       Description: Allows ECS to get images from ECR
       AssumeRolePolicyDocument:
         Statement:
@@ -190,3 +190,27 @@ Resources:
                   - "logs:CreateLogStream"
                   - "logs:PutLogEvents"
                 Resource: !GetAtt OpenposeECSRepository.Arn
+  S3ReadWriteAccessRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName:
+        !Join [
+          "-",
+          [!Ref AppName, !Ref Environment, "s3-read-write-access-role"],
+        ]
+      Description: Grants read and write access to the S3 bucket in the stack
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ["ecs-tasks.amazonaws.com"]
+            Action: ["sts:AssumeRole"]
+      Path: /
+      Policies:
+        - PolicyName: S3ReadWriteAccessRolePolicy
+          PolicyDocument:
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "s3:*Object"
+                Resource: !GetAtt OriginalSourceBucket.Arn
