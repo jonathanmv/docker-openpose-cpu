@@ -162,3 +162,31 @@ Resources:
           "-",
           [!Ref AppName, !Ref Environment, !Ref OriginalSuffix, "ecs-cluster"],
         ]
+
+  # ECS Tasks - One for conversion and one for processing
+  ECSTaskExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName:
+        !Join ["-", [!Ref AppName, !Ref Environment, "ecsTaskExecutionRole"]]
+      Description: Allows ECS to get images from ECR
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ["ecs-tasks.amazonaws.com"]
+            Action: ["sts:AssumeRole"]
+      Path: /
+      Policies:
+        - PolicyName: ECSTaskExecutionRolePolicy
+          PolicyDocument:
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "ecr:GetAuthorizationToken"
+                  - "ecr:BatchCheckLayerAvailability"
+                  - "ecr:GetDownloadUrlForLayer"
+                  - "ecr:BatchGetImage"
+                  - "logs:CreateLogStream"
+                  - "logs:PutLogEvents"
+                Resource: !GetAtt OpenposeECSRepository.Arn
