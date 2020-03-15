@@ -314,7 +314,7 @@ Resources:
       Family:
         !Join [
           "-",
-          [!Ref AppName, !Ref Environment, !Ref ProcessingSuffix, "ecs-task"],
+          [!Ref AppName, !Ref Environment, !Ref ProcessingSuffix, "ecs-task"]
         ]
       Memory: 2048
       NetworkMode: awsvpc
