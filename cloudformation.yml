@@ -134,6 +134,51 @@ Resources:
           [!Ref AppName, !Ref Environment, !Ref ProcessedSuffix, "sns-topic"],
         ]
 
+  ProcessedSnsTopicPolicy:
+    Type: AWS::SNS::TopicPolicy
+    DependsOn:
+      - ProcessedSnsTopic
+    Properties:
+      Topics:
+        - Ref: ProcessedSnsTopic
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: "s3.amazonaws.com"
+            Action:
+              - sns:Publish
+            Resource:
+              !Join [
+                "",
+                [
+                  "arn:aws:sns:*:*:",
+                  !Join [
+                    "-",
+                    [!Ref AppName, !Ref Environment, !Ref ProcessedSuffix, "*"],
+                  ],
+                ],
+              ]
+            Condition:
+              ArnLike:
+                aws:SourceArn:
+                  !Join [
+                    "",
+                    [
+                      "arn:aws:s3:*:*:",
+                      !Join [
+                        "-",
+                        [
+                          !Ref AppName,
+                          !Ref Environment,
+                          !Ref OriginalSuffix,
+                          "*",
+                        ],
+                      ],
+                    ],
+                  ]
+
   OriginalSourceBucket:
     Type: AWS::S3::Bucket
     DependsOn:
