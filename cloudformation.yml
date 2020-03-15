@@ -162,3 +162,115 @@ Resources:
           "-",
           [!Ref AppName, !Ref Environment, !Ref OriginalSuffix, "ecs-cluster"],
         ]
+
+  # ECS Tasks - One for conversion and one for processing
+  ECSTaskExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName:
+        !Join ["-", [!Ref AppName, !Ref Environment, "ecs-task-execution-role"]]
+      Description: Allows ECS to get images from ECR
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ["ecs-tasks.amazonaws.com"]
+            Action: ["sts:AssumeRole"]
+      Path: /
+      Policies:
+        - PolicyName: ECSTaskExecutionRolePolicy
+          PolicyDocument:
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "ecr:GetAuthorizationToken"
+                  - "ecr:BatchCheckLayerAvailability"
+                  - "ecr:GetDownloadUrlForLayer"
+                  - "ecr:BatchGetImage"
+                  - "logs:CreateLogStream"
+                  - "logs:PutLogEvents"
+                Resource: "*"
+  S3ReadWriteAccessRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName:
+        !Join [
+          "-",
+          [!Ref AppName, !Ref Environment, "s3-read-write-access-role"],
+        ]
+      Description: Grants read and write access to the S3 bucket in the stack
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ["ecs-tasks.amazonaws.com"]
+            Action: ["sts:AssumeRole"]
+      Path: /
+      Policies:
+        - PolicyName: S3ReadWriteAccessRolePolicy
+          PolicyDocument:
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "s3:*Object"
+                Resource: "*"
+
+  ECSTasksCloudWatchLogsGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName:
+        !Join ["-", [!Ref AppName, !Ref Environment, "ecs-tasks-log-group"]]
+      RetentionInDays: 7
+
+  ConvertToAviECSTask:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      ContainerDefinitions:
+        - Name:
+            !Join [
+              "-",
+              [
+                !Ref AppName,
+                !Ref Environment,
+                !Ref ConversionSuffix,
+                "container-definition",
+              ],
+            ]
+          EntryPoint:
+            - "./download-convert-upload.sh"
+          Image: # 472551880915.dkr.ecr.eu-west-2.amazonaws.com/openpose-video-processor-dev-openpose-ecr-repository:latest
+            !Join [
+              "",
+              [
+                !Ref "AWS::AccountId",
+                ".dkr.ecr.",
+                !Ref "AWS::Region",
+                ".amazonaws.com/",
+                !Ref FfmpegECSRepository,
+                ":latest",
+              ],
+            ]
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref ECSTasksCloudWatchLogsGroup
+              awslogs-region: !Ref AWS::Region
+              awslogs-stream-prefix: !Ref ConversionSuffix
+          WorkingDirectory: "/scripts"
+      Cpu: 256
+      ExecutionRoleArn: !GetAtt ECSTaskExecutionRole.Arn
+      Family:
+        !Join [
+          "-",
+          [
+            !Ref AppName,
+            !Ref Environment,
+            !Ref ConversionSuffix,
+            "mp4-to-avi-ecs-task",
+          ],
+        ]
+      Memory: 512
+      NetworkMode: awsvpc
+      RequiresCompatibilities:
+        - FARGATE
+      TaskRoleArn: !GetAtt S3ReadWriteAccessRole.Arn

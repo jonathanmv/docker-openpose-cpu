@@ -28,6 +28,7 @@ create-stack: validate-template
 
 deploy-stack: validate-template
 	aws cloudformation deploy \
+	--capabilities CAPABILITY_NAMED_IAM \
 	--stack-name $(CLOUDFORMATION_STACK) \
 	--template-file cloudformation.yml
 
