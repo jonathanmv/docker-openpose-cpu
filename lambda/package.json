@@ -1,0 +1,19 @@
+{
+  "name": "lambda",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/aws-lambda": "^8.10.46",
+    "@types/aws-sdk": "^2.7.0"
+  },
+  "dependencies": {
+    "aws-sdk": "^2.639.0"
+  }
+}
