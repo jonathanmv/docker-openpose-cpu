@@ -206,7 +206,7 @@ Resources:
               S3Key:
                 Rules:
                   - Name: prefix
-                    Value: OriginalSuffix
+                    Value: !Ref OriginalSuffix
         TopicConfigurations:
           - Event: "s3:ObjectCreated:*"
             Topic: # arn:aws:sns:eu-west-2:472551880915:openpose-video-processor-dev-proccessed-sns-topic
@@ -233,7 +233,7 @@ Resources:
               S3Key:
                 Rules:
                   - Name: prefix
-                    Value: ProcessedSuffix
+                    Value: !Ref ProcessedSuffix
 
   # ECR Repositories - One per docker image
   OpenposeECSRepository:
