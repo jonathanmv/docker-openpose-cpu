@@ -5,6 +5,8 @@ BASE_NAME=$(APP_NAME)-$(ENV)
 CLOUDFORMATION_STACK=$(BASE_NAME)-original-cloudformation-stack
 CLOUDFORMATION_TEMPLATE=file://$(PWD)/cloudformation.yml
 
+include .env
+
 #unset AWS vars to force authentication from provided file
 export AWS_ACCESS_KEY_ID=
 export AWS_SECRET_ACCESS_KEY=
@@ -23,12 +25,13 @@ delete-stack: validate-template
 create-stack: validate-template
 	aws cloudformation create-stack \
 	--stack-name $(CLOUDFORMATION_STACK) \
-	--parameters ParameterKey=AppName,ParameterValue=$(APP_NAME) ParameterKey=Environment,ParameterValue=$(ENV) \
+	--parameters ParameterKey=AppName,ParameterValue=$(APP_NAME) ParameterKey=Environment,ParameterValue=$(ENV) ParameterKey=NotificationEmail,ParameterValue=$(NOTIFICATION_EMAIL) \
 	--template-body $(CLOUDFORMATION_TEMPLATE)
 
 deploy-stack: validate-template
 	aws cloudformation deploy \
 	--capabilities CAPABILITY_NAMED_IAM \
+	--parameter-overrides AppName=$(APP_NAME) Environment=$(ENV) NotificationEmail=$(NOTIFICATION_EMAIL) \
 	--stack-name $(CLOUDFORMATION_STACK) \
 	--template-file cloudformation.yml
 

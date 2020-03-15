@@ -18,6 +18,7 @@ Metadata:
           - ConversionSuffix
           - ProcessingSuffix
           - ProcessedSuffix
+          - NotificationEmail
 
 Parameters:
   AppName:
@@ -48,6 +49,9 @@ Parameters:
       - test
       - prod
     Default: dev
+  NotificationEmail:
+    Type: String
+    Description: Once a video has been processed, a notification will be sent to this email address
 
 Resources:
   OriginalSourceQueuePolicy:
@@ -125,6 +129,63 @@ Resources:
       ReceiveMessageWaitTimeSeconds: 0
       VisibilityTimeout: 500
 
+  ProcessedSnsTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName:
+        !Join [
+          "-",
+          [!Ref AppName, !Ref Environment, !Ref ProcessedSuffix, "sns-topic"],
+        ]
+      Subscription:
+        - Endpoint: !Ref NotificationEmail
+          Protocol: email
+
+  ProcessedSnsTopicPolicy:
+    Type: AWS::SNS::TopicPolicy
+    DependsOn:
+      - ProcessedSnsTopic
+    Properties:
+      Topics:
+        - Ref: ProcessedSnsTopic
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: "s3.amazonaws.com"
+            Action:
+              - sns:Publish
+            Resource:
+              !Join [
+                "",
+                [
+                  "arn:aws:sns:*:*:",
+                  !Join [
+                    "-",
+                    [!Ref AppName, !Ref Environment, !Ref ProcessedSuffix, "*"],
+                  ],
+                ],
+              ]
+            Condition:
+              ArnLike:
+                aws:SourceArn:
+                  !Join [
+                    "",
+                    [
+                      "arn:aws:s3:*:*:",
+                      !Join [
+                        "-",
+                        [
+                          !Ref AppName,
+                          !Ref Environment,
+                          !Ref OriginalSuffix,
+                          "*",
+                        ],
+                      ],
+                    ],
+                  ]
+
   OriginalSourceBucket:
     Type: AWS::S3::Bucket
     DependsOn:
@@ -141,6 +202,38 @@ Resources:
         QueueConfigurations:
           - Event: "s3:ObjectCreated:*"
             Queue: !GetAtt OriginalSourceQueue.Arn
+            Filter:
+              S3Key:
+                Rules:
+                  - Name: prefix
+                    Value: !Ref OriginalSuffix
+        TopicConfigurations:
+          - Event: "s3:ObjectCreated:*"
+            Topic: # arn:aws:sns:eu-west-2:472551880915:openpose-video-processor-dev-proccessed-sns-topic
+              !Join [
+                "",
+                [
+                  !Join [
+                    ":",
+                    ["arn:aws:sns", !Ref "AWS::Region", !Ref "AWS::AccountId"],
+                  ],
+                  ":",
+                  !Join [
+                    "-",
+                    [
+                      !Ref AppName,
+                      !Ref Environment,
+                      !Ref ProcessedSuffix,
+                      "sns-topic",
+                    ],
+                  ],
+                ],
+              ]
+            Filter:
+              S3Key:
+                Rules:
+                  - Name: prefix
+                    Value: !Ref ProcessedSuffix
 
   # ECR Repositories - One per docker image
   OpenposeECSRepository:
@@ -314,7 +407,7 @@ Resources:
       Family:
         !Join [
           "-",
-          [!Ref AppName, !Ref Environment, !Ref ProcessingSuffix, "ecs-task"]
+          [!Ref AppName, !Ref Environment, !Ref ProcessingSuffix, "ecs-task"],
         ]
       Memory: 2048
       NetworkMode: awsvpc
