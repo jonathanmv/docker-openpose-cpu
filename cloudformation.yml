@@ -195,6 +195,38 @@ Resources:
         QueueConfigurations:
           - Event: "s3:ObjectCreated:*"
             Queue: !GetAtt OriginalSourceQueue.Arn
+            Filter:
+              S3Key:
+                Rules:
+                  - Name: prefix
+                    Value: OriginalSuffix
+        TopicConfigurations:
+          - Event: "s3:ObjectCreated:*"
+            Topic: # arn:aws:sns:eu-west-2:472551880915:openpose-video-processor-dev-proccessed-sns-topic
+              !Join [
+                "",
+                [
+                  !Join [
+                    ":",
+                    ["arn:aws:sns", !Ref "AWS::Region", !Ref "AWS::AccountId"],
+                  ],
+                  ":",
+                  !Join [
+                    "-",
+                    [
+                      !Ref AppName,
+                      !Ref Environment,
+                      !Ref ProcessedSuffix,
+                      "sns-topic",
+                    ],
+                  ],
+                ],
+              ]
+            Filter:
+              S3Key:
+                Rules:
+                  - Name: prefix
+                    Value: ProcessedSuffix
 
   # ECR Repositories - One per docker image
   OpenposeECSRepository:
