@@ -78,3 +78,8 @@ ecr-ffmpeg-tag:
 
 ecr-ffmpeg-push:
 	docker push ${ECR_FFMPEG_REMOTE_TAG}
+
+
+### Lambda handler
+lambda-build:
+	cd $(PWD)/lambda && npm run clean && npm run build
