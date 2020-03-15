@@ -238,7 +238,7 @@ Resources:
             ]
           EntryPoint:
             - "./download-convert-upload.sh"
-          Image: # 472551880915.dkr.ecr.eu-west-2.amazonaws.com/openpose-video-processor-dev-openpose-ecr-repository:latest
+          Image: # 472551880915.dkr.ecr.eu-west-2.amazonaws.com/openpose-video-processor-dev-ffmpeg-ecr-repository:latest
             !Join [
               "",
               [
@@ -270,6 +270,58 @@ Resources:
           ],
         ]
       Memory: 512
+      NetworkMode: awsvpc
+      RequiresCompatibilities:
+        - FARGATE
+      TaskRoleArn: !GetAtt S3ReadWriteAccessRole.Arn
+  ProcessWithOpenPoseECSTask:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      ContainerDefinitions:
+        - Name:
+            !Join [
+              "-",
+              [
+                !Ref AppName,
+                !Ref Environment,
+                !Ref ProcessingSuffix,
+                "container-definition",
+              ],
+            ]
+          EntryPoint:
+            - "./download-process-upload.sh"
+          Image: # 472551880915.dkr.ecr.eu-west-2.amazonaws.com/openpose-video-processor-dev-openpose-ecr-repository:latest
+            !Join [
+              "",
+              [
+                !Ref "AWS::AccountId",
+                ".dkr.ecr.",
+                !Ref "AWS::Region",
+                ".amazonaws.com/",
+                !Ref OpenposeECSRepository,
+                ":latest",
+              ],
+            ]
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref ECSTasksCloudWatchLogsGroup
+              awslogs-region: !Ref AWS::Region
+              awslogs-stream-prefix: !Ref ProcessingSuffix
+          WorkingDirectory: "/scripts"
+      Cpu: 1024
+      ExecutionRoleArn: !GetAtt ECSTaskExecutionRole.Arn
+      Family:
+        !Join [
+          "-",
+          [
+            !Ref AppName,
+            !Ref Environment,
+            !Ref ProcessingSuffix,
+            "mp4-to-avi-ecs-task",
+          ],
+        ]
+      Memory: 2048
       NetworkMode: awsvpc
       RequiresCompatibilities:
         - FARGATE
