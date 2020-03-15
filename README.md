@@ -99,3 +99,7 @@ make ecr-login
 make ecr-tag
 make ecr-push
 ```
+
+# Variables loaded from .env
+
+NOTIFICATION_EMAIL: email address that will receive notifications once a video has been processed
