@@ -125,6 +125,15 @@ Resources:
       ReceiveMessageWaitTimeSeconds: 0
       VisibilityTimeout: 500
 
+  ProcessedSnsTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName:
+        !Join [
+          "-",
+          [!Ref AppName, !Ref Environment, !Ref ProcessedSuffix, "sns-topic"],
+        ]
+
   OriginalSourceBucket:
     Type: AWS::S3::Bucket
     DependsOn:
@@ -314,7 +323,7 @@ Resources:
       Family:
         !Join [
           "-",
-          [!Ref AppName, !Ref Environment, !Ref ProcessingSuffix, "ecs-task"]
+          [!Ref AppName, !Ref Environment, !Ref ProcessingSuffix, "ecs-task"],
         ]
       Memory: 2048
       NetworkMode: awsvpc
