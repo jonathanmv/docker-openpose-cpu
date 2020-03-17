@@ -6,7 +6,7 @@
   "scripts": {
     "clean": "rm -rf ./dist",
     "build": "tsc --build --verbose",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "jest"
   },
   "keywords": [],
   "author": "",
@@ -14,7 +14,8 @@
   "devDependencies": {
     "@types/aws-lambda": "^8.10.46",
     "@types/aws-sdk": "^2.7.0",
-    "@types/node": "^13.9.1"
+    "@types/node": "^13.9.1",
+    "jest": "^25.1.0"
   },
   "dependencies": {
     "aws-sdk": "^2.639.0"
