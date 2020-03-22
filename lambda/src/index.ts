@@ -27,8 +27,7 @@ const originalObjectHandler: ObjectHandler = {
     const destinationObject = {
       ...object,
       key: object.key.replace('original', 'converted')
-          .replace('.mp4', '.avi')
-
+          .replace(/\.mp4$/i, '.avi')
     };
     const destination = s3Uri(destinationObject);
     const commands = [source, destination];
