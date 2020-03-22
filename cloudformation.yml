@@ -79,10 +79,10 @@ Resources:
                       !Join [
                         "-",
                         [
-                          !Ref AppName,
-                          !Ref Environment,
-                          !Ref OriginalSuffix,
-                          "*",
+                        !Ref AppName,
+                        !Ref Environment,
+                        !Ref OriginalSuffix,
+                        "*",
                         ],
                       ],
                     ],
@@ -120,10 +120,10 @@ Resources:
         !Join [
           "-",
           [
-            !Ref AppName,
-            !Ref Environment,
-            !Ref OriginalSuffix,
-            "deadletter-queue",
+          !Ref AppName,
+          !Ref Environment,
+          !Ref OriginalSuffix,
+          "deadletter-queue",
           ],
         ]
       ReceiveMessageWaitTimeSeconds: 0
@@ -177,10 +177,10 @@ Resources:
                       !Join [
                         "-",
                         [
-                          !Ref AppName,
-                          !Ref Environment,
-                          !Ref OriginalSuffix,
-                          "*",
+                        !Ref AppName,
+                        !Ref Environment,
+                        !Ref OriginalSuffix,
+                        "*",
                         ],
                       ],
                     ],
@@ -213,20 +213,20 @@ Resources:
               !Join [
                 "",
                 [
-                  !Join [
-                    ":",
-                    ["arn:aws:sns", !Ref "AWS::Region", !Ref "AWS::AccountId"],
-                  ],
+                !Join [
                   ":",
-                  !Join [
-                    "-",
-                    [
-                      !Ref AppName,
-                      !Ref Environment,
-                      !Ref ProcessedSuffix,
-                      "sns-topic",
-                    ],
+                  ["arn:aws:sns", !Ref "AWS::Region", !Ref "AWS::AccountId"],
+                ],
+                ":",
+                !Join [
+                  "-",
+                  [
+                  !Ref AppName,
+                  !Ref Environment,
+                  !Ref ProcessedSuffix,
+                  "sns-topic",
                   ],
+                ],
                 ],
               ]
             Filter:
@@ -327,12 +327,12 @@ Resources:
             !Join [
               "",
               [
-                !Ref "AWS::AccountId",
-                ".dkr.ecr.",
-                !Ref "AWS::Region",
-                ".amazonaws.com/",
-                !Ref FfmpegECSRepository,
-                ":latest",
+              !Ref "AWS::AccountId",
+              ".dkr.ecr.",
+              !Ref "AWS::Region",
+              ".amazonaws.com/",
+              !Ref FfmpegECSRepository,
+              ":latest",
               ],
             ]
           LogConfiguration:
@@ -348,10 +348,10 @@ Resources:
         !Join [
           "-",
           [
-            !Ref AppName,
-            !Ref Environment,
-            !Ref ConversionSuffix,
-            "mp4-to-avi-ecs-task",
+          !Ref AppName,
+          !Ref Environment,
+          !Ref ConversionSuffix,
+          "mp4-to-avi-ecs-task",
           ],
         ]
       Memory: 512
@@ -370,12 +370,12 @@ Resources:
             !Join [
               "",
               [
-                !Ref "AWS::AccountId",
-                ".dkr.ecr.",
-                !Ref "AWS::Region",
-                ".amazonaws.com/",
-                !Ref OpenposeECSRepository,
-                ":latest",
+              !Ref "AWS::AccountId",
+              ".dkr.ecr.",
+              !Ref "AWS::Region",
+              ".amazonaws.com/",
+              !Ref OpenposeECSRepository,
+              ":latest",
               ],
             ]
           LogConfiguration:
@@ -419,9 +419,25 @@ Resources:
               - Effect: Allow
                 Action:
                   - "sqs:SendMessage"
+                  - "sqs:ReceiveMessage"
+                  - "sqs:DeleteMessage"
+                  - "sqs:ChangeMessageVisibility"
+                  - "sqs:GetQueueAttributes"
                   - "ecs:RunTask"
                   - "iam:PassRole"
                 Resource: "*"
+
+  HandleS3CreateObjectLambdaEventSourceMapping:
+    Type: AWS::Lambda::EventSourceMapping
+    DependsOn:
+      - HandleS3CreateObjectLambda
+      - OriginalSourceQueue
+    Properties:
+      BatchSize: 1
+      Enabled: true
+      EventSourceArn: !GetAtt OriginalSourceQueue.Arn
+      FunctionName: !GetAtt HandleS3CreateObjectLambda.Arn
+
   HandleS3CreateObjectLambdaDeadLetterQueue:
     Type: AWS::SQS::Queue
     Properties:
