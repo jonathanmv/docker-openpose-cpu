@@ -8,7 +8,7 @@ const mockRunTask = jest.fn();
 jest.mock("aws-sdk", () => ({
     ECS: jest.fn(() => ({
         runTask: mockRunTask.mockImplementation(() => ({
-            promise: () => {}
+            promise: () => ({})
         }))
     }))
 }));

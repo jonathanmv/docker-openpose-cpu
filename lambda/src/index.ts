@@ -3,14 +3,16 @@ import {
   handle
 } from './s3CreateEventHandler'
 
-const s3Uri = (bucket: string, key: string) => `s3://${bucket}/${key}`;
-
 export const handler: S3Handler = async (event: S3CreateEvent) => {
   const { bucket, object } = event.Records[0].s3;
   const { key } = object;
-  const source = s3Uri(bucket.name, key);
-  console.log("Handling...");
-  await handle(source);
-
-  console.log("Done handling " + source);
+  const source = `s3://${bucket.name}/${key}`;
+  console.log("Handling " + source);
+  try {
+    await handle(source);
+    console.log("Done handling " + source);
+  } catch (error) {
+    console.error("Failed handling " + source);
+    console.error(error);
+  }
 };
