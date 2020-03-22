@@ -438,6 +438,7 @@ Resources:
                 Action:
                   - "sqs:SendMessage"
                   - "ecs:RunTask"
+                  - "iam:PassRole"
                 Resource: "*"
   HandleS3CreateObjectLambdaDeadLetterQueue:
     Type: AWS::SQS::Queue
