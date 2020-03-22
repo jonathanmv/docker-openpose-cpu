@@ -282,6 +282,7 @@ Resources:
                   - "ecr:BatchGetImage"
                   - "logs:CreateLogStream"
                   - "logs:PutLogEvents"
+                  - "ecs:RunTask"
                 Resource: "*"
   S3ReadWriteAccessRole:
     Type: AWS::IAM::Role
@@ -414,3 +415,71 @@ Resources:
       RequiresCompatibilities:
         - FARGATE
       TaskRoleArn: !GetAtt S3ReadWriteAccessRole.Arn
+
+  # Lambda
+  HandleS3CreateObjectLambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName:
+        !Join ["-", [!Ref AppName, !Ref Environment, "lambda-execution-role"]]
+      Description: Allows Lambda to run ecs tasks and report to dead letter
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ["lambda.amazonaws.com"]
+            Action: ["sts:AssumeRole"]
+      Path: /
+      Policies:
+        - PolicyName: HandleS3CreateObjectLambdaExecutionRolePolicy
+          PolicyDocument:
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "sqs:SendMessage"
+                  - "ecs:RunTask"
+                Resource: "*"
+  HandleS3CreateObjectLambdaDeadLetterQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      DelaySeconds: 0
+      MaximumMessageSize: 262144
+      MessageRetentionPeriod: 1209600 # 14 days. Maximum allowed period
+      QueueName:
+        !Join [
+          "-",
+          [
+          !Ref AppName,
+          !Ref Environment,
+          "handle-s3-create-object-lambda-deadletter-queue",
+          ],
+        ]
+      ReceiveMessageWaitTimeSeconds: 0
+      VisibilityTimeout: 500
+
+  HandleS3CreateObjectLambda:
+    Type: AWS::Lambda::Function
+    DependsOn:
+      - HandleS3CreateObjectLambdaDeadLetterQueue
+      - HandleS3CreateObjectLambdaExecutionRole
+    Properties:
+      Code:
+        ZipFile: |
+          exports.handler = function() {}
+      DeadLetterConfig:
+        TargetArn: !GetAtt HandleS3CreateObjectLambdaDeadLetterQueue.Arn
+      Description: Handles events when new objects are created in the bucket
+      FunctionName:
+        !Join [
+          "-",
+          [
+          !Ref AppName,
+          !Ref Environment,
+          "handle-s3-create-object-lambda",
+          ],
+        ]
+      Handler: index.handler
+      MemorySize: 128
+      Role: !GetAtt HandleS3CreateObjectLambdaExecutionRole.Arn
+      Runtime: nodejs12.x
+      Timeout: 5
