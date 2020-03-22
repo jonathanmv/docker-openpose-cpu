@@ -1,12 +1,10 @@
 import { S3CreateEvent, S3Handler } from "aws-lambda";
-import Ecs from "aws-sdk/clients/ecs";
+import AWS from "aws-sdk";
 import {
   buildEcsRunTaskRequest,
   CONVERT_TASK,
   PROCESS_TASK
 } from './ecsTaskRequestBuilder'
-
-const ecs = new Ecs();
 
 type S3Object = { bucket: string; key: string };
 interface ObjectHandler {
@@ -24,8 +22,13 @@ const noopObjectHandler: ObjectHandler = {
 const originalObjectHandler: ObjectHandler = {
   prefix: "original",
   handle: async object => {
+    const ecs = new AWS.ECS();
     const source = s3Uri(object);
-    const destination = object.key.replace('original','converted') + '.avi';
+    const destinationObject = {
+      ...object,
+      key: object.key.replace('original', 'converted')
+    };
+    const destination = s3Uri(destinationObject);
     const commands = [source, destination];
     const task = CONVERT_TASK;
     const request = buildEcsRunTaskRequest(task, commands);
@@ -37,8 +40,13 @@ const originalObjectHandler: ObjectHandler = {
 const convertedObjectHandler: ObjectHandler = {
   prefix: "converted",
   handle: async object => {
+    const ecs = new AWS.ECS();
     const source = s3Uri(object);
-    const destination = object.key.replace('converted', 'processing');
+    const destinationObject = {
+      ...object,
+      key: object.key.replace('converted', 'processing')
+    };
+    const destination = s3Uri(destinationObject);
     const commands = [source, destination];
     const task = PROCESS_TASK;
     const request = buildEcsRunTaskRequest(task, commands);
@@ -50,6 +58,7 @@ const convertedObjectHandler: ObjectHandler = {
 const processedObjectHandler: ObjectHandler = {
   prefix: "processing",
   handle: async object => {
+    const ecs = new AWS.ECS();
     const source = s3Uri(object);
     const destination = object.key
       .replace('processing','processed')

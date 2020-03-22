@@ -1,3 +1,4 @@
+import * as AWS from 'aws-sdk';
 
 type Convert = 'openpose-video-processor-dev-conversion-mp4-to-avi-ecs-task';
 type Process = 'openpose-video-processor-dev-processing-ecs-task';
@@ -9,7 +10,7 @@ export const PROCESS_TASK: Process = 'openpose-video-processor-dev-processing-ec
 export const buildEcsRunTaskRequest = (
   taskDefinition: Convert | Process,
   commands: string[]
-) => ({
+): AWS.ECS.Types.RunTaskRequest => ({
   cluster: "string", // ARN
   count: 1,
   launchType: "FARGATE",
