@@ -80,6 +80,15 @@ ecr-ffmpeg-push:
 	docker push ${ECR_FFMPEG_REMOTE_TAG}
 
 
-### Lambda handler
+# Lambda handler
+LAMBDA_NAME=${BASE_NAME}-handle-s3-create-object-lambda
 lambda-build:
 	cd $(PWD)/lambda && npm run clean && npm run build
+
+lambda-zip:
+	rm -rf ./dist
+	cp -r ./lambda/dist ./
+	cd ./dist/ && zip -r function.zip .
+
+lambda-deploy: lambda-build lambda-zip
+	aws lambda update-function-code --function-name $(LAMBDA_NAME) --zip-file fileb://$(PWD)/dist/function.zip
