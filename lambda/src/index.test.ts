@@ -64,15 +64,16 @@ interface ExpectedRunTaskParams {
 }
 
 test.each([
-    ['original/people.mp4', { taskDefinition: CONVERT_TASK, destination: 'converted/people.avi'}],
-    ['original/people.MP4', { taskDefinition: CONVERT_TASK, destination: 'converted/people.avi'}],
-    ['original/people.MP4.mp4', { taskDefinition: CONVERT_TASK, destination: 'converted/people.MP4.avi'}],
-    ['converted/people.avi', { taskDefinition: PROCESS_TASK, destination: 'processing/people.avi'}],
-    ['processing/people.avi', { taskDefinition: CONVERT_TASK, destination: 'processed/people.mp4'}],
+    ['original/people.mp4', {taskDefinition: CONVERT_TASK, destination: 'converted/people.avi'}],
+    ['original/people.MP4', {taskDefinition: CONVERT_TASK, destination: 'converted/people.avi'}],
+    ['original/people.MP4.mp4', {taskDefinition: CONVERT_TASK, destination: 'converted/people.MP4.avi'}],
+    ['converted/people.avi', {taskDefinition: PROCESS_TASK, destination: 'processing/people.avi'}],
+    ['processing/people.avi', {taskDefinition: CONVERT_TASK, destination: 'processed/people.mp4'}],
 ])('handles "%s" with "%o"', async (key: string, expectedParams: ExpectedRunTaskParams) => {
     const event = buildS3CreateEvent(key);
     const context = {} as Context;
-    const callback = () => {};
+    const callback = () => {
+    };
     await handler(event, context, callback);
 
     const taskParams = mockRunTask.mock.calls[0][0] as AWS.ECS.Types.RunTaskRequest;
@@ -84,4 +85,20 @@ test.each([
         `s3://${BUCKET_NAME}/${key}`,
         `s3://${BUCKET_NAME}/${expectedParams.destination}`
     ]);
+});
+
+test.each([
+    ['invalid-origin/people.mp4', 0],
+    ['processed/people.mp4', 0],
+    ['original/people.mp4', 1],
+    ['converted/people.mp4', 1],
+    ['processing/people.mp4', 1],
+])('', async (key: string, numberOfCalls: number) => {
+    const event = buildS3CreateEvent(key);
+    const context = {} as Context;
+    const callback = () => {
+    };
+    await handler(event, context, callback);
+
+    expect(mockRunTask.mock.calls.length).toBe(numberOfCalls);
 });
