@@ -484,3 +484,9 @@ Resources:
       Role: !GetAtt HandleS3CreateObjectLambdaExecutionRole.Arn
       Runtime: nodejs12.x
       Timeout: 5
+      Environment:
+        Variables:
+          ECS_CLUSTER: !GetAtt OriginalECSCluster.Arn
+          ECS_TASK_CONVERT: !Ref ConvertToAviECSTask
+          ECS_TASK_PROCESS: !Ref ProcessWithOpenPoseECSTask
+
