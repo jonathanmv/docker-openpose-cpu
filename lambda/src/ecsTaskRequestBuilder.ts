@@ -1,14 +1,11 @@
 import * as AWS from 'aws-sdk';
 
-type Convert = 'openpose-video-processor-dev-conversion-mp4-to-avi-ecs-task';
-type Process = 'openpose-video-processor-dev-processing-ecs-task';
-
-export const CONVERT_TASK: Convert = 'openpose-video-processor-dev-conversion-mp4-to-avi-ecs-task';
-export const PROCESS_TASK: Process = 'openpose-video-processor-dev-processing-ecs-task';
+export const CONVERT_TASK = 'openpose-video-processor-dev-conversion-mp4-to-avi-ecs-task';
+export const PROCESS_TASK = 'openpose-video-processor-dev-processing-ecs-task';
 
 // https://docs.aws.amazon.com/AmazonECS/latest/APIReference/API_RunTask.html#API_RunTask_RequestParameters
 export const buildEcsRunTaskRequest = (
-  taskDefinition: Convert | Process,
+  taskDefinition: string,
   commands: string[]
 ): AWS.ECS.Types.RunTaskRequest => ({
   cluster: "string", // ARN

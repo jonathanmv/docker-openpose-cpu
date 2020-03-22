@@ -66,6 +66,7 @@ interface ExpectedRunTaskParams {
 test.each([
     ['original/people.mp4', { taskDefinition: CONVERT_TASK, destination: 'converted/people.avi'}],
     ['original/people.MP4', { taskDefinition: CONVERT_TASK, destination: 'converted/people.avi'}],
+    ['original/people.MP4.mp4', { taskDefinition: CONVERT_TASK, destination: 'converted/people.MP4.avi'}],
     ['converted/people.avi', { taskDefinition: PROCESS_TASK, destination: 'processing/people.avi'}],
     ['processing/people.avi', { taskDefinition: CONVERT_TASK, destination: 'processed/people.mp4'}],
 ])('handles "%s" with "%o"', async (key: string, expectedParams: ExpectedRunTaskParams) => {
