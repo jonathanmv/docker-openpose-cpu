@@ -2,7 +2,7 @@ import {handler} from "./index";
 import {Context, S3CreateEvent} from "aws-lambda";
 import AWS from 'aws-sdk';
 
-import {CONVERT_TASK} from "./ecsTaskRequestBuilder";
+import {CONVERT_TASK, PROCESS_TASK} from "./ecsTaskRequestBuilder";
 
 const mockRunTask = jest.fn();
 jest.mock("aws-sdk", () => ({
@@ -58,25 +58,28 @@ beforeEach(() => {
     mockRunTask.mockClear();
 });
 
-test("creates a task to convert from mp4 to avi when a .mp4 file is put in /original folder", async () => {
-    const key = "original/people.mp4";
+interface ExpectedRunTaskParams {
+    taskDefinition: string;
+    destination: string;
+}
+
+test.each([
+    ['original/people.mp4', { taskDefinition: CONVERT_TASK, destination: 'converted/people.avi'}],
+    ['converted/people.avi', { taskDefinition: PROCESS_TASK, destination: 'processing/people.avi'}],
+    ['processing/people.avi', { taskDefinition: CONVERT_TASK, destination: 'processed/people.mp4'}],
+])('handles "%s" with "%o"', async (key: string, expectedParams: ExpectedRunTaskParams) => {
     const event = buildS3CreateEvent(key);
     const context = {} as Context;
-    const callback = () => {
-    };
+    const callback = () => {};
     await handler(event, context, callback);
 
     const taskParams = mockRunTask.mock.calls[0][0] as AWS.ECS.Types.RunTaskRequest;
     const containerOverrides = taskParams.overrides!.containerOverrides![0];
     const {command} = containerOverrides;
     const {taskDefinition} = taskParams;
-    expect(taskDefinition).toBe(CONVERT_TASK);
+    expect(taskDefinition).toBe(expectedParams.taskDefinition);
     expect(command).toEqual([
         `s3://${BUCKET_NAME}/${key}`,
-        `s3://${BUCKET_NAME}/converted/${key.replace('original/', '')}`
+        `s3://${BUCKET_NAME}/${expectedParams.destination}`
     ]);
 });
-
-test.todo("creates a task to process avi");
-
-test.todo("creates a task to convert from avi to mp4");

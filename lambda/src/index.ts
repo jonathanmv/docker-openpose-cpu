@@ -27,6 +27,8 @@ const originalObjectHandler: ObjectHandler = {
     const destinationObject = {
       ...object,
       key: object.key.replace('original', 'converted')
+          .replace('.mp4', '.avi')
+
     };
     const destination = s3Uri(destinationObject);
     const commands = [source, destination];
@@ -60,9 +62,13 @@ const processedObjectHandler: ObjectHandler = {
   handle: async object => {
     const ecs = new AWS.ECS();
     const source = s3Uri(object);
-    const destination = object.key
-      .replace('processing','processed')
-      .replace('.avi', '.mp4');
+    const destinationObject = {
+      ...object,
+      key: object.key
+          .replace('processing','processed')
+          .replace('.avi', '.mp4')
+    };
+    const destination = s3Uri(destinationObject);
     const commands = [source, destination];
     const task = CONVERT_TASK;
     const request = buildEcsRunTaskRequest(task, commands);
