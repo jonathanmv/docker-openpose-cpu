@@ -53,14 +53,19 @@ export const handle = async (source: string) => {
     const commands = [source, destination];
     const request = buildEcsRunTaskRequest(taskDefinition, commands);
     const ecs = new AWS.ECS();
-    const response = await ecs.runTask(request).promise();
-    const {failures, tasks} = response;
-    if (failures && failures.length) {
-        const [failure] = failures;
-        console.error(`Failed to handle ${source}:\n${failure.reason}\n${failure.detail}`);
-    }
-    if (tasks && tasks.length) {
-        const [task] = tasks;
-        console.info(`Successfully handled ${source} with:\n${task.taskDefinitionArn}`);
+    try {
+        const response = await ecs.runTask(request).promise();
+        const {failures, tasks} = response;
+        if (failures && failures.length) {
+            const [failure] = failures;
+            console.error(`Failed to handle ${source}:\n${failure.reason}\n${failure.detail}`);
+        }
+        if (tasks && tasks.length) {
+            const [task] = tasks;
+            console.info(`Successfully handled ${source} with:\n${task.taskDefinitionArn}`);
+        }
+    } catch (error) {
+        console.error(`Error while running task`, request);
+        throw error;
     }
 };
