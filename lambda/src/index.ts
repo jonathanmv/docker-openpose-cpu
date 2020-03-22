@@ -13,6 +13,6 @@ export const handler: S3Handler = async (event: S3CreateEvent) => {
     console.log("Done handling " + source);
   } catch (error) {
     console.error("Failed handling " + source);
-    console.error(error);
+    throw error;
   }
 };
