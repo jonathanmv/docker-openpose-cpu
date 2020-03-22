@@ -23,8 +23,6 @@ export const buildEcsRunTaskRequest = (
   networkConfiguration: {
     awsvpcConfiguration: {
       assignPublicIp: "ENABLED",
-      // securityGroups are Optional
-      securityGroups: ["openpo-3702"], // cluster vpc vpc-4d14d125 (172.31.0.0/16)
       subnets: ["subnet-6efec823"] // 172.31.32.0/20 eu-west-2b
     }
   },
