@@ -64,11 +64,11 @@ interface ExpectedRunTaskParams {
 }
 
 test.each([
-    ['original/people.mp4', {taskDefinition: CONVERT_TASK, destination: 'converted/people.avi'}],
-    ['original/people.mov', {taskDefinition: CONVERT_TASK, destination: 'converted/people.avi'}],
-    ['original/people.MP4', {taskDefinition: CONVERT_TASK, destination: 'converted/people.avi'}],
-    ['original/people.MP4.mp4', {taskDefinition: CONVERT_TASK, destination: 'converted/people.MP4.avi'}],
-    ['converted/people.avi', {taskDefinition: PROCESS_TASK, destination: 'processing/people.avi'}],
+    ['original/people.mp4', {taskDefinition: CONVERT_TASK, destination: 'conversion/people.avi'}],
+    ['original/people.mov', {taskDefinition: CONVERT_TASK, destination: 'conversion/people.avi'}],
+    ['original/people.MP4', {taskDefinition: CONVERT_TASK, destination: 'conversion/people.avi'}],
+    ['original/people.MP4.mp4', {taskDefinition: CONVERT_TASK, destination: 'conversion/people.MP4.avi'}],
+    ['conversion/people.avi', {taskDefinition: PROCESS_TASK, destination: 'processing/people.avi'}],
     ['processing/people.avi', {taskDefinition: CONVERT_TASK, destination: 'processed/people.mp4'}],
 ])('handles "%s" with "%o"', async (key: string, expectedParams: ExpectedRunTaskParams) => {
     const event = buildS3CreateEvent(key);
@@ -92,7 +92,7 @@ test.each([
     ['invalid-origin/people.mp4', 0],
     ['processed/people.mp4', 0],
     ['original/people.mp4', 1],
-    ['converted/people.mp4', 1],
+    ['conversion/people.mp4', 1],
     ['processing/people.mp4', 1],
 ])('', async (key: string, numberOfCalls: number) => {
     const event = buildS3CreateEvent(key);

@@ -2,7 +2,7 @@ import * as AWS from "aws-sdk";
 import {buildEcsRunTaskRequest, CONVERT_TASK, PROCESS_TASK} from "./ecsTaskRequestBuilder";
 
 const findOrigin = (source: string) => {
-    const match = /\/(original|converted|processing)\//.exec(source) || [];
+    const match = /\/(original|conversion|processing)\//.exec(source) || [];
     return match[1];
 };
 const findExtension = (source: string) => {
@@ -13,14 +13,14 @@ const findExtension = (source: string) => {
 type StringMap  = { [key: string]: string }
 const taskDefinitionsMap: StringMap = {
     original: CONVERT_TASK,
-    converted: PROCESS_TASK,
+    conversion: PROCESS_TASK,
     processing: CONVERT_TASK
 };
 const findTaskDefinition = (origin: string) => taskDefinitionsMap[origin];
 
 const destinationsMap: StringMap = {
-    original: 'converted',
-    converted: 'processing',
+    original: 'conversion',
+    conversion: 'processing',
     processing: 'processed'
 };
 const extensionConversionMap: StringMap = {
