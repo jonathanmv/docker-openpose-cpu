@@ -207,6 +207,20 @@ Resources:
                 Rules:
                   - Name: prefix
                     Value: !Ref OriginalSuffix
+          - Event: "s3:ObjectCreated:*"
+            Queue: !GetAtt OriginalSourceQueue.Arn
+            Filter:
+              S3Key:
+                Rules:
+                - Name: prefix
+                  Value: !Ref ConversionSuffix
+          - Event: "s3:ObjectCreated:*"
+            Queue: !GetAtt OriginalSourceQueue.Arn
+            Filter:
+              S3Key:
+                Rules:
+                  - Name: prefix
+                    Value: !Ref ProcessingSuffix
         TopicConfigurations:
           - Event: "s3:ObjectCreated:*"
             Topic: # arn:aws:sns:eu-west-2:472551880915:openpose-video-processor-dev-proccessed-sns-topic
