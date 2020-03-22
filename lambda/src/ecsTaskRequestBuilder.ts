@@ -31,7 +31,8 @@ export const buildEcsRunTaskRequest = (
   overrides: {
     containerOverrides: [
       {
-        command: commands
+        command: commands,
+        name: 'container'
       }
     ]
   },

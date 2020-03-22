@@ -320,16 +320,7 @@ Resources:
     Type: AWS::ECS::TaskDefinition
     Properties:
       ContainerDefinitions:
-        - Name:
-            !Join [
-              "-",
-              [
-                !Ref AppName,
-                !Ref Environment,
-                !Ref ConversionSuffix,
-                "container-definition",
-              ],
-            ]
+        - Name: container
           EntryPoint:
             - "./download-convert-upload.sh"
           Image: # 472551880915.dkr.ecr.eu-west-2.amazonaws.com/openpose-video-processor-dev-ffmpeg-ecr-repository:latest
@@ -372,16 +363,7 @@ Resources:
     Type: AWS::ECS::TaskDefinition
     Properties:
       ContainerDefinitions:
-        - Name:
-            !Join [
-              "-",
-              [
-                !Ref AppName,
-                !Ref Environment,
-                !Ref ProcessingSuffix,
-                "container-definition",
-              ],
-            ]
+        - Name: container
           EntryPoint:
             - "./download-process-upload.sh"
           Image: # 472551880915.dkr.ecr.eu-west-2.amazonaws.com/openpose-video-processor-dev-openpose-ecr-repository:latest
