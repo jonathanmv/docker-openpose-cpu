@@ -439,6 +439,9 @@ Resources:
                   - "sqs:GetQueueAttributes"
                   - "ecs:RunTask"
                   - "iam:PassRole"
+                  - "logs:CreateLogGroup"
+                  - "logs:CreateLogStream"
+                  - "logs:PutLogEvents"
                 Resource: "*"
 
   HandleS3CreateObjectLambdaEventSourceMapping:
@@ -501,4 +504,3 @@ Resources:
           ECS_CLUSTER: !GetAtt OriginalECSCluster.Arn
           ECS_TASK_CONVERT: !Ref ConvertToAviECSTask
           ECS_TASK_PROCESS: !Ref ProcessWithOpenPoseECSTask
-
