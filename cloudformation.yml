@@ -79,10 +79,10 @@ Resources:
                       !Join [
                         "-",
                         [
-                          !Ref AppName,
-                          !Ref Environment,
-                          !Ref OriginalSuffix,
-                          "*",
+                        !Ref AppName,
+                        !Ref Environment,
+                        !Ref OriginalSuffix,
+                        "*",
                         ],
                       ],
                     ],
@@ -120,10 +120,10 @@ Resources:
         !Join [
           "-",
           [
-            !Ref AppName,
-            !Ref Environment,
-            !Ref OriginalSuffix,
-            "deadletter-queue",
+          !Ref AppName,
+          !Ref Environment,
+          !Ref OriginalSuffix,
+          "deadletter-queue",
           ],
         ]
       ReceiveMessageWaitTimeSeconds: 0
@@ -177,10 +177,10 @@ Resources:
                       !Join [
                         "-",
                         [
-                          !Ref AppName,
-                          !Ref Environment,
-                          !Ref OriginalSuffix,
-                          "*",
+                        !Ref AppName,
+                        !Ref Environment,
+                        !Ref OriginalSuffix,
+                        "*",
                         ],
                       ],
                     ],
@@ -207,26 +207,40 @@ Resources:
                 Rules:
                   - Name: prefix
                     Value: !Ref OriginalSuffix
+          - Event: "s3:ObjectCreated:*"
+            Queue: !GetAtt OriginalSourceQueue.Arn
+            Filter:
+              S3Key:
+                Rules:
+                - Name: prefix
+                  Value: !Ref ConversionSuffix
+          - Event: "s3:ObjectCreated:*"
+            Queue: !GetAtt OriginalSourceQueue.Arn
+            Filter:
+              S3Key:
+                Rules:
+                  - Name: prefix
+                    Value: !Ref ProcessingSuffix
         TopicConfigurations:
           - Event: "s3:ObjectCreated:*"
             Topic: # arn:aws:sns:eu-west-2:472551880915:openpose-video-processor-dev-proccessed-sns-topic
               !Join [
                 "",
                 [
-                  !Join [
-                    ":",
-                    ["arn:aws:sns", !Ref "AWS::Region", !Ref "AWS::AccountId"],
-                  ],
+                !Join [
                   ":",
-                  !Join [
-                    "-",
-                    [
-                      !Ref AppName,
-                      !Ref Environment,
-                      !Ref ProcessedSuffix,
-                      "sns-topic",
-                    ],
+                  ["arn:aws:sns", !Ref "AWS::Region", !Ref "AWS::AccountId"],
+                ],
+                ":",
+                !Join [
+                  "-",
+                  [
+                  !Ref AppName,
+                  !Ref Environment,
+                  !Ref ProcessedSuffix,
+                  "sns-topic",
                   ],
+                ],
                 ],
               ]
             Filter:
@@ -282,6 +296,7 @@ Resources:
                   - "ecr:BatchGetImage"
                   - "logs:CreateLogStream"
                   - "logs:PutLogEvents"
+                  - "ecs:RunTask"
                 Resource: "*"
   S3ReadWriteAccessRole:
     Type: AWS::IAM::Role
@@ -319,28 +334,19 @@ Resources:
     Type: AWS::ECS::TaskDefinition
     Properties:
       ContainerDefinitions:
-        - Name:
-            !Join [
-              "-",
-              [
-                !Ref AppName,
-                !Ref Environment,
-                !Ref ConversionSuffix,
-                "container-definition",
-              ],
-            ]
+        - Name: container
           EntryPoint:
             - "./download-convert-upload.sh"
           Image: # 472551880915.dkr.ecr.eu-west-2.amazonaws.com/openpose-video-processor-dev-ffmpeg-ecr-repository:latest
             !Join [
               "",
               [
-                !Ref "AWS::AccountId",
-                ".dkr.ecr.",
-                !Ref "AWS::Region",
-                ".amazonaws.com/",
-                !Ref FfmpegECSRepository,
-                ":latest",
+              !Ref "AWS::AccountId",
+              ".dkr.ecr.",
+              !Ref "AWS::Region",
+              ".amazonaws.com/",
+              !Ref FfmpegECSRepository,
+              ":latest",
               ],
             ]
           LogConfiguration:
@@ -356,10 +362,10 @@ Resources:
         !Join [
           "-",
           [
-            !Ref AppName,
-            !Ref Environment,
-            !Ref ConversionSuffix,
-            "mp4-to-avi-ecs-task",
+          !Ref AppName,
+          !Ref Environment,
+          !Ref ConversionSuffix,
+          "mp4-to-avi-ecs-task",
           ],
         ]
       Memory: 512
@@ -371,28 +377,19 @@ Resources:
     Type: AWS::ECS::TaskDefinition
     Properties:
       ContainerDefinitions:
-        - Name:
-            !Join [
-              "-",
-              [
-                !Ref AppName,
-                !Ref Environment,
-                !Ref ProcessingSuffix,
-                "container-definition",
-              ],
-            ]
+        - Name: container
           EntryPoint:
             - "./download-process-upload.sh"
           Image: # 472551880915.dkr.ecr.eu-west-2.amazonaws.com/openpose-video-processor-dev-openpose-ecr-repository:latest
             !Join [
               "",
               [
-                !Ref "AWS::AccountId",
-                ".dkr.ecr.",
-                !Ref "AWS::Region",
-                ".amazonaws.com/",
-                !Ref OpenposeECSRepository,
-                ":latest",
+              !Ref "AWS::AccountId",
+              ".dkr.ecr.",
+              !Ref "AWS::Region",
+              ".amazonaws.com/",
+              !Ref OpenposeECSRepository,
+              ":latest",
               ],
             ]
           LogConfiguration:
@@ -414,3 +411,96 @@ Resources:
       RequiresCompatibilities:
         - FARGATE
       TaskRoleArn: !GetAtt S3ReadWriteAccessRole.Arn
+
+  # Lambda
+  HandleS3CreateObjectLambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName:
+        !Join ["-", [!Ref AppName, !Ref Environment, "lambda-execution-role"]]
+      Description: Allows Lambda to run ecs tasks and report to dead letter
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ["lambda.amazonaws.com"]
+            Action: ["sts:AssumeRole"]
+      Path: /
+      Policies:
+        - PolicyName: HandleS3CreateObjectLambdaExecutionRolePolicy
+          PolicyDocument:
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "sqs:SendMessage"
+                  - "sqs:ReceiveMessage"
+                  - "sqs:DeleteMessage"
+                  - "sqs:ChangeMessageVisibility"
+                  - "sqs:GetQueueAttributes"
+                  - "ecs:RunTask"
+                  - "iam:PassRole"
+                  - "logs:CreateLogGroup"
+                  - "logs:CreateLogStream"
+                  - "logs:PutLogEvents"
+                Resource: "*"
+
+  HandleS3CreateObjectLambdaEventSourceMapping:
+    Type: AWS::Lambda::EventSourceMapping
+    DependsOn:
+      - HandleS3CreateObjectLambda
+      - OriginalSourceQueue
+    Properties:
+      BatchSize: 1
+      Enabled: true
+      EventSourceArn: !GetAtt OriginalSourceQueue.Arn
+      FunctionName: !GetAtt HandleS3CreateObjectLambda.Arn
+
+  HandleS3CreateObjectLambdaDeadLetterQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      DelaySeconds: 0
+      MaximumMessageSize: 262144
+      MessageRetentionPeriod: 1209600 # 14 days. Maximum allowed period
+      QueueName:
+        !Join [
+          "-",
+          [
+          !Ref AppName,
+          !Ref Environment,
+          "handle-s3-create-object-lambda-deadletter-queue",
+          ],
+        ]
+      ReceiveMessageWaitTimeSeconds: 0
+      VisibilityTimeout: 500
+
+  HandleS3CreateObjectLambda:
+    Type: AWS::Lambda::Function
+    DependsOn:
+      - HandleS3CreateObjectLambdaDeadLetterQueue
+      - HandleS3CreateObjectLambdaExecutionRole
+    Properties:
+      Code:
+        ZipFile: |
+          exports.handler = function() {}
+      DeadLetterConfig:
+        TargetArn: !GetAtt HandleS3CreateObjectLambdaDeadLetterQueue.Arn
+      Description: Handles events when new objects are created in the bucket
+      FunctionName:
+        !Join [
+          "-",
+          [
+          !Ref AppName,
+          !Ref Environment,
+          "handle-s3-create-object-lambda",
+          ],
+        ]
+      Handler: index.handler
+      MemorySize: 128
+      Role: !GetAtt HandleS3CreateObjectLambdaExecutionRole.Arn
+      Runtime: nodejs12.x
+      Timeout: 5
+      Environment:
+        Variables:
+          ECS_CLUSTER: !GetAtt OriginalECSCluster.Arn
+          ECS_TASK_CONVERT: !Ref ConvertToAviECSTask
+          ECS_TASK_PROCESS: !Ref ProcessWithOpenPoseECSTask
