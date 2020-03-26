@@ -437,6 +437,7 @@ Resources:
                   - "sqs:DeleteMessage"
                   - "sqs:ChangeMessageVisibility"
                   - "sqs:GetQueueAttributes"
+                  - "sqs:GetQueueUrl"
                   - "ecs:RunTask"
                   - "iam:PassRole"
                   - "logs:CreateLogGroup"
