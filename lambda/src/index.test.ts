@@ -5,11 +5,21 @@ import AWS from 'aws-sdk';
 import {CONVERT_TASK, PROCESS_TASK} from "./ecsTaskRequestBuilder";
 
 const mockRunTask = jest.fn();
+const mockDeleteMessage = jest.fn();
+const mockGetQueueUrl = jest.fn();
 jest.mock("aws-sdk", () => ({
     ECS: jest.fn(() => ({
         runTask: mockRunTask.mockImplementation(() => ({
             promise: () => ({})
         }))
+    })),
+    SQS: jest.fn(() => ({
+      getQueueUrl: mockGetQueueUrl.mockImplementation(() => ({
+        promise: ():Promise<AWS.SQS.Types.GetQueueUrlResult> => Promise.resolve({ QueueUrl: 'https://sqs'})
+      })),
+      deleteMessage: mockDeleteMessage.mockImplementation(() => ({
+        promise: () => ({})
+      }))
     }))
 }));
 
@@ -76,7 +86,7 @@ const buildSQSEvent = (s3ObjectKey: string): SQSEvent => ({
 });
 
 beforeEach(() => {
-    mockRunTask.mockClear();
+    jest.clearAllMocks();
 });
 
 interface ExpectedRunTaskParams {
@@ -98,6 +108,8 @@ test.each([
     };
     await handler(event, context, callback);
 
+    // Assert that the ecs task was created with the right params
+    expect(mockRunTask).toHaveBeenCalledTimes(1);
     const taskParams = mockRunTask.mock.calls[0][0] as AWS.ECS.Types.RunTaskRequest;
     const containerOverrides = taskParams.overrides!.containerOverrides![0];
     const {command} = containerOverrides;
@@ -107,6 +119,12 @@ test.each([
         `s3://${BUCKET_NAME}/${key}`,
         `s3://${BUCKET_NAME}/${expectedParams.destination}`
     ]);
+
+    // Assert that the sqs message was deleted
+    expect(mockDeleteMessage).toHaveBeenCalledTimes(1);
+    const {QueueUrl, ReceiptHandle} = mockDeleteMessage.mock.calls[0][0] as AWS.SQS.Types.DeleteMessageRequest;
+    expect(QueueUrl).toBe("https://sqs");
+    expect(ReceiptHandle).toBe(event.Records[0].receiptHandle);
 });
 
 test.each([
